@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Pointer — Controle de Jornada</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <div class="bg1"></div>
+    <div class="bg2"></div>
+
+    <div class="mobile-top">
+      <h1>Pointer</h1>
+      <div style="display: flex; gap: 8px; align-items: center">
+        <button id="toggle-theme" title="Alternar tema">🌓</button>
+        <button
+          onclick="
+            document.getElementById('sidebar').classList.toggle('active')
+          "
+        >
+          ☰
+        </button>
+      </div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+      <div>
+        <h1 class="logo">Pointer</h1>
+        <p class="slogan">Tecnologia inteligente para controle de jornada</p>
+        <nav class="menu">
+          <a onclick="mostrarTela('dashboard')">🏠 Dashboard</a>
+          <a onclick="mostrarTela('historico')">🕘 Histórico</a>
+          <a onclick="mostrarTela('relatorios')">📊 Relatórios</a>
+          <a onclick="mostrarTela('funcionarios')">👥 Funcionários</a>
+        </nav>
+      </div>
+
+      <div class="bottom-sidebar">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <div
+            id="avatar"
+            style="
+              width: 44px;
+              height: 44px;
+              border-radius: 10px;
+              background: var(--primary);
+              color: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 700;
+            "
+          ></div>
+          <div>
+            <div id="userName">Convidado</div>
+            <div
+              id="userRole"
+              style="font-size: 13px; color: var(--text-secondary)"
+            >
+              —
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 14px; display: flex; gap: 8px">
+          <button id="btn-logout">Sair</button>
+          <button id="toggle-theme-sidebar">Tema</button>
+    </aside>
+
+    <main class="main">
+      <!-- LOGIN / REGISTER CARD -->
+      <section class="login-card" id="loginBox" aria-labelledby="auth-title">
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+          "
+        >
+          <div class="badge">SaaS Premium</div>
+          <div style="font-size: 13px; color: var(--text-secondary)">
+            Interface profissional
+          </div>
+        </div>
+
+        <h1 id="auth-title">Pointer</h1>
+        <p style="margin-bottom: 18px; color: var(--text-secondary)">
+          Controle de jornada empresarial com inteligência.
+        </p>
+
+        <div style="display: flex; gap: 12px; margin-bottom: 18px">
+          <button onclick="showAuthTab('login')" style="flex: 1">Entrar</button>
+          <button onclick="showAuthTab('register')" style="flex: 1">
+            Cadastrar
+          </button>
+        </div>
+
+        <div id="tab-login" class="auth-tab">
+          <form id="form-login">
+            <input id="email" type="email" placeholder="Email" required />
+            <input id="senha" type="password" placeholder="Senha" required />
+            <button type="submit">Entrar no sistema</button>
+          </form>
+        </div>
+
+        <div id="tab-register" class="auth-tab" style="display: none">
+          <form id="form-register">
+            <input id="name" type="text" placeholder="Nome completo" required />
+            <input id="reg-email" type="email" placeholder="Email" required />
+            <input
+              id="reg-senha"
+              type="password"
+              placeholder="Senha"
+              required
+            />
+            <input
+              id="role"
+              list="roles"
+              placeholder="Cargo (ex: Desenvolvedor)"
+              value="Colaborador"
+            />
+            <datalist id="roles">
+              <option>Colaborador</option>
+              <option>RH</option>
+              <option>Gestor</option>
+            </datalist>
+            <button type="submit">Criar conta</button>
+          </form>
+        </div>
+
+        <small
+          style="margin-top: 12px; color: var(--text-secondary); display: block"
+          >Ao cadastrar, os dados ficam apenas no seu navegador
+          (localStorage).</small
+        >
+      </section>
+
+      <!-- APP SYSTEM (hidden until login) -->
+      <div id="sistema" style="display: none; max-width: 1400px; width: 100%">
+        <header class="topbar">
+          <div class="top-left">
+            <h1 id="dash-title">Dashboard</h1>
+            <p id="current-time">--:--:--</p>
+          </div>
+          <div class="top-right">
+            <div class="search">
+              <input
+                id="globalSearch"
+                placeholder="Pesquisar..."
+                oninput="
+                  qs('#searchHist').value = this.value;
+                  qs('#searchHist').dispatchEvent(new Event('input'));
+                "
+              />
+            </div>
+          </div>
+        </header>
+
+        <section class="stats">
+          <div class="card">
+            <div class="card-top">
+              <span>Horas Trabalhadas</span>
+              <div class="tag">Hoje</div>
+            </div>
+            <h2 id="meta-hours">00:00:00</h2>
+            <small>Horas acumuladas</small>
+          </div>
+          <div class="card">
+            <div class="card-top">
+              <span>Horas Extras</span>
+              <div class="tag">Mensal</div>
+            </div>
+            <h2 id="meta-extras">0h</h2>
+            <small>Horas extras estimadas</small>
+          </div>
+          <div class="card">
+            <div class="card-top"><span>Pausas</span></div>
+            <h2 id="meta-pauses">00:00:00</h2>
+            <small>Tempo em pausas</small>
+          </div>
+          <div class="card">
+            <div class="card-top"><span>Dias Trabalhados</span></div>
+            <h2 id="meta-days">0d</h2>
+            <small>Período</small>
+          </div>
+        </section>
+
+        <div
+          style="
+            display: flex;
+            gap: 20px;
+            margin-top: 24px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+          "
+        >
+          <div style="flex: 1; min-width: 320px">
+            <div class="chart-card">
+              <div class="section-top">
+                <h2>Horas da Semana</h2>
+                <span class="online-badge">Atualizado</span>
+              </div>
+              <canvas id="graficoLinha" height="140"></canvas>
+            </div>
+            <div class="chart-card" style="margin-top: 16px">
+              <div class="section-top"><h2>Atividade</h2></div>
+              <canvas id="graficoPizza" height="110"></canvas>
+            </div>
+          </div>
+
+          <aside style="width: 360px; min-width: 260px">
+            <div class="history-card">
+              <div class="section-top"><h2>Registros</h2></div>
+              <div style="display: flex; gap: 8px; margin-bottom: 12px">
+                <button id="btn-entrada">Registrar Entrada</button>
+                <button id="btn-pausa-start">Iniciar Pausa</button>
+                <button id="btn-pausa-end">Voltar da Pausa</button>
+                <button id="btn-saida">Registrar Saída</button>
+              </div>
+
+              <input
+                id="searchHist"
+                placeholder="Filtrar histórico..."
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  margin-bottom: 12px;
+                  border-radius: 12px;
+                  border: 1px solid rgba(0, 0, 0, 0.05);
+                "
+              />
+              <ul
+                id="lista"
+                style="max-height: 260px; overflow: auto; padding: 0; margin: 0"
+              ></ul>
+            </div>
+          </aside>
+        </div>
+
+        <section style="margin-top: 20px">
+          <div class="bottom-grid">
+            <div class="activity-card">
+              <div class="section-top">
+                <h2>Usuário</h2>
+                <span id="userRole" class="online-badge">Cargo</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px">
+                <div
+                  id="avatar"
+                  style="
+                    width: 56px;
+                    height: 56px;
+                    border-radius: 12px;
+                    background: var(--primary);
+                    color: #fff;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 700;
+                  "
+                ></div>
+                <div>
+                  <h4 id="userName">—</h4>
+                  <p style="color: var(--text-secondary)">
+                    Status: <strong>Trabalhando</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="productivity-card">
+              <div class="section-top">
+                <h2>Produtividade</h2>
+                <span>89%</span>
+              </div>
+              <div class="progress-area">
+                <div class="progress-title">Presença semanal</div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: 89%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- HISTÓRICO PAGE -->
+        <section id="historico" class="tela" style="display:none;margin-top:20px">
+          <div class="history-card">
+            <div class="section-top"><h2>Histórico de Registros</h2><span class="online-badge">Completo</span></div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:8px">
+                <button id="btn-entrada-h">Registrar Entrada</button>
+                <button id="btn-pausa-start-h">Iniciar Pausa</button>
+                <button id="btn-pausa-end-h">Voltar da Pausa</button>
+                <button id="btn-saida-h">Registrar Saída</button>
+              </div>
+              <input id="searchHistPage" placeholder="Filtrar histórico..." style="width:100%;padding:10px;border-radius:12px;border:1px solid rgba(0,0,0,0.05)">
+              <ul id="lista-hist" style="padding:0;margin:0;list-style:none"></ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- RELATÓRIOS PAGE -->
+        <section id="relatorios" class="tela" style="display:none;margin-top:20px">
+          <div class="history-card">
+            <h2>Relatórios</h2>
+            <table class="table" id="table-reports">
+              <thead><tr><th>Funcionário</th><th>Horas</th><th>Extras</th><th>Dias</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- FUNCIONÁRIOS PAGE -->
+        <section id="funcionarios" class="tela" style="display:none;margin-top:20px">
+          <div class="history-card">
+            <h2>Funcionários</h2>
+            <ul id="emp-list"></ul>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <div aria-live="polite" class="toast-wrap"></div>
+  </body>
+</html>
