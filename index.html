@@ -15,39 +15,34 @@
     <script src="script.js" defer></script>
   </head>
   <body>
+    <a class="skip-link" href="#sistema" style="position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden;">Pular para o conteúdo</a>
     <div class="bg1"></div>
     <div class="bg2"></div>
 
     <div class="mobile-top">
       <h1>Pointer</h1>
       <div style="display: flex; gap: 8px; align-items: center">
-        <button id="toggle-theme" title="Alternar tema">🌓</button>
-        <button
-          onclick="
-            document.getElementById('sidebar').classList.toggle('active')
-          "
-        >
-          ☰
-        </button>
+        <button id="toggle-theme" type="button" title="Alternar tema" aria-label="Alternar tema">🌓</button>
+        <button type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menu" onclick="document.getElementById('sidebar').classList.toggle('active')">☰</button>
       </div>
     </div>
 
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" role="complementary" aria-label="Barra lateral">
       <div>
         <h1 class="logo">Pointer</h1>
         <p class="slogan">Tecnologia inteligente para controle de jornada</p>
-        <nav class="menu">
-          <a onclick="mostrarTela('dashboard')">🏠 Dashboard</a>
-          <a onclick="mostrarTela('historico')">🕘 Histórico</a>
-          <a onclick="mostrarTela('relatorios')">📊 Relatórios</a>
-          <a onclick="mostrarTela('funcionarios')">👥 Funcionários</a>
+        <nav class="menu" role="navigation" aria-label="Principal">
+          <a href="#" role="button" onclick="mostrarTela('dashboard'); return false;">🏠 Dashboard</a>
+          <a href="#" role="button" onclick="mostrarTela('historico'); return false;">🕘 Histórico</a>
+          <a href="#" role="button" onclick="mostrarTela('relatorios'); return false;">📊 Relatórios</a>
+          <a href="#" role="button" onclick="mostrarTela('funcionarios'); return false;">👥 Funcionários</a>
         </nav>
       </div>
 
       <div class="bottom-sidebar">
         <div style="display: flex; align-items: center; gap: 12px">
           <div
-            id="avatar"
+            id="sidebarAvatar"
             style="
               width: 44px;
               height: 44px;
@@ -61,9 +56,9 @@
             "
           ></div>
           <div>
-            <div id="userName">Convidado</div>
+            <div id="sidebarUserName">Convidado</div>
             <div
-              id="userRole"
+              id="sidebarUserRole"
               style="font-size: 13px; color: var(--text-secondary)"
             >
               —
@@ -71,16 +66,17 @@
           </div>
         </div>
         <div style="margin-top: 14px; display: flex; gap: 8px">
-          <button id="btn-logout">Sair</button>
-          <button id="toggle-theme-sidebar">Tema</button>
-    </aside>
+          <button id="btn-logout" type="button">Sair</button>
+          <button id="toggle-theme-sidebar" type="button">Tema</button>
+        </div>
+      </aside>
 
     <main class="main">
       <!-- LOGIN / REGISTER CARD -->
       <section class="login-card" id="loginBox" aria-labelledby="auth-title">
         <div
-          style="
-            display: flex;
+                <div
+                  id="cardAvatar"
             align-items: center;
             justify-content: space-between;
             margin-bottom: 18px;
@@ -94,36 +90,36 @@
 
         <h1 id="auth-title">Pointer</h1>
         <p style="margin-bottom: 18px; color: var(--text-secondary)">
-          Controle de jornada empresarial com inteligência.
+                  <h4 id="cardUserName">—</h4>
         </p>
 
-        <div style="display: flex; gap: 12px; margin-bottom: 18px">
-          <button onclick="showAuthTab('login')" style="flex: 1">Entrar</button>
-          <button onclick="showAuthTab('register')" style="flex: 1">
-            Cadastrar
-          </button>
+        <div class="auth-actions">
+          <button type="button" onclick="showAuthTab('login')">Entrar</button>
+          <button type="button" onclick="showAuthTab('register')">Cadastrar</button>
         </div>
 
         <div id="tab-login" class="auth-tab">
           <form id="form-login">
-            <input id="email" type="email" placeholder="Email" required />
-            <input id="senha" type="password" placeholder="Senha" required />
+            <input id="email" aria-label="Email" type="email" placeholder="Email" required />
+            <input id="senha" aria-label="Senha" type="password" placeholder="Senha" required />
             <button type="submit">Entrar no sistema</button>
           </form>
         </div>
 
         <div id="tab-register" class="auth-tab" style="display: none">
           <form id="form-register">
-            <input id="name" type="text" placeholder="Nome completo" required />
-            <input id="reg-email" type="email" placeholder="Email" required />
+            <input id="name" aria-label="Nome completo" type="text" placeholder="Nome completo" required />
+            <input id="reg-email" aria-label="Email de registro" type="email" placeholder="Email" required />
             <input
               id="reg-senha"
+              aria-label="Senha de registro"
               type="password"
               placeholder="Senha"
               required
             />
             <input
               id="role"
+              aria-label="Cargo"
               list="roles"
               placeholder="Cargo (ex: Desenvolvedor)"
               value="Colaborador"
@@ -146,15 +142,17 @@
 
       <!-- APP SYSTEM (hidden until login) -->
       <div id="sistema" style="display: none; max-width: 1400px; width: 100%">
-        <header class="topbar">
-          <div class="top-left">
-            <h1 id="dash-title">Dashboard</h1>
-            <p id="current-time">--:--:--</p>
-          </div>
+        <section id="dashboard" class="tela">
+          <header class="topbar">
+            <div class="top-left">
+              <h1 id="dash-title">Dashboard</h1>
+              <p id="current-time">--:--:--</p>
+            </div>
           <div class="top-right">
             <div class="search">
               <input
                 id="globalSearch"
+                aria-label="Pesquisar"
                 placeholder="Pesquisar..."
                 oninput="
                   qs('#searchHist').value = this.value;
@@ -194,16 +192,8 @@
           </div>
         </section>
 
-        <div
-          style="
-            display: flex;
-            gap: 20px;
-            margin-top: 24px;
-            align-items: flex-start;
-            flex-wrap: wrap;
-          "
-        >
-          <div style="flex: 1; min-width: 320px">
+        <div class="page-grid">
+          <div class="dashboard-content">
             <div class="chart-card">
               <div class="section-top">
                 <h2>Horas da Semana</h2>
@@ -217,31 +207,22 @@
             </div>
           </div>
 
-          <aside style="width: 360px; min-width: 260px">
+          <aside class="dashboard-aside">
             <div class="history-card">
               <div class="section-top"><h2>Registros</h2></div>
-              <div style="display: flex; gap: 8px; margin-bottom: 12px">
-                <button id="btn-entrada">Registrar Entrada</button>
-                <button id="btn-pausa-start">Iniciar Pausa</button>
-                <button id="btn-pausa-end">Voltar da Pausa</button>
-                <button id="btn-saida">Registrar Saída</button>
+              <div class="history-actions-row">
+                <button id="btn-entrada" type="button">Registrar Entrada</button>
+                <button id="btn-pausa-start" type="button">Iniciar Pausa</button>
+                <button id="btn-pausa-end" type="button">Voltar da Pausa</button>
+                <button id="btn-saida" type="button">Registrar Saída</button>
               </div>
 
               <input
                 id="searchHist"
+                class="page-search"
                 placeholder="Filtrar histórico..."
-                style="
-                  width: 100%;
-                  padding: 10px;
-                  margin-bottom: 12px;
-                  border-radius: 12px;
-                  border: 1px solid rgba(0, 0, 0, 0.05);
-                "
               />
-              <ul
-                id="lista"
-                style="max-height: 260px; overflow: auto; padding: 0; margin: 0"
-              ></ul>
+              <ul id="lista" class="history-list"></ul>
             </div>
           </aside>
         </div>
@@ -253,7 +234,7 @@
                 <h2>Usuário</h2>
                 <span id="userRole" class="online-badge">Cargo</span>
               </div>
-              <div style="display: flex; align-items: center; gap: 12px">
+              <div class="user-summary">
                 <div
                   id="avatar"
                   style="
@@ -291,20 +272,21 @@
             </div>
           </div>
         </section>
+        </section>
 
         <!-- HISTÓRICO PAGE -->
         <section id="historico" class="tela" style="display:none;margin-top:20px">
           <div class="history-card">
             <div class="section-top"><h2>Histórico de Registros</h2><span class="online-badge">Completo</span></div>
-            <div style="display:flex;flex-direction:column;gap:12px">
-              <div style="display:flex;gap:8px">
-                <button id="btn-entrada-h">Registrar Entrada</button>
-                <button id="btn-pausa-start-h">Iniciar Pausa</button>
-                <button id="btn-pausa-end-h">Voltar da Pausa</button>
-                <button id="btn-saida-h">Registrar Saída</button>
+            <div class="page-panel">
+              <div class="history-page-actions">
+                <button id="btn-entrada-h" type="button">Registrar Entrada</button>
+                <button id="btn-pausa-start-h" type="button">Iniciar Pausa</button>
+                <button id="btn-pausa-end-h" type="button">Voltar da Pausa</button>
+                <button id="btn-saida-h" type="button">Registrar Saída</button>
               </div>
-              <input id="searchHistPage" placeholder="Filtrar histórico..." style="width:100%;padding:10px;border-radius:12px;border:1px solid rgba(0,0,0,0.05)">
-              <ul id="lista-hist" style="padding:0;margin:0;list-style:none"></ul>
+              <input id="searchHistPage" aria-label="Filtrar histórico" class="page-search" placeholder="Filtrar histórico..." />
+              <ul id="lista-hist" class="history-list"></ul>
             </div>
           </div>
         </section>
@@ -313,10 +295,12 @@
         <section id="relatorios" class="tela" style="display:none;margin-top:20px">
           <div class="history-card">
             <h2>Relatórios</h2>
-            <table class="table" id="table-reports">
-              <thead><tr><th>Funcionário</th><th>Horas</th><th>Extras</th><th>Dias</th></tr></thead>
-              <tbody></tbody>
-            </table>
+            <div class="table-responsive">
+              <table class="table" id="table-reports">
+                <thead><tr><th>Funcionário</th><th>Horas</th><th>Extras</th><th>Dias</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
         </section>
 

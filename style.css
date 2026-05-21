@@ -202,6 +202,11 @@ body:not(.logged-in) .mobile-top {
   transform: translateX(5px);
 }
 
+.menu a.active {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--primary);
+}
+
 .bottom-sidebar {
   padding: var(--space-md);
   border-radius: var(--radius-md);
@@ -290,6 +295,90 @@ body.logged-in .main {
   margin-bottom: var(--space-lg);
   color: var(--text-secondary);
   line-height: 1.7;
+}
+
+.login-card button {
+  width: 100%;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.auth-actions button {
+  flex: 1 1 140px;
+  min-width: 120px;
+  width: auto;
+}
+
+.page-grid {
+  display: flex;
+  gap: 20px;
+  margin-top: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.dashboard-content {
+  flex: 1 1 580px;
+  min-width: 320px;
+}
+
+.dashboard-aside {
+  flex: 0 1 360px;
+  min-width: 260px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.page-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page-actions,
+.history-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.page-actions button,
+.history-page-actions button {
+  flex: 1 1 140px;
+  min-width: 120px;
+  width: auto;
+}
+
+.page-search {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.history-card table {
+  width: 100%;
+  min-width: 0; /* allow table to shrink on small screens; container handles horizontal scroll */
+}
+
+.user-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 /* =========================================================
@@ -391,9 +480,12 @@ button:active {
 .search {
   padding: 12px 18px;
   border-radius: var(--radius-sm);
+  width: 100%;
+  min-width: 0;
 }
 
 .search input {
+  width: 100%;
   margin: 0;
   border: none;
   background: transparent;
@@ -431,13 +523,12 @@ button:active {
 }
 
 .card {
+  background: #fdfdfd;
+  box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
-
   padding: 26px;
-
   border-radius: var(--radius-md);
-
   transition:
     transform var(--transition),
     box-shadow var(--transition);
@@ -540,16 +631,95 @@ button:active {
   background: white;
   box-shadow: var(--shadow-sm);
   border-radius: var(--radius-md);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.history-card .history-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.history-card .history-actions-row button {
+  flex: 1 1 140px;
+  min-width: 120px;
 }
 
 .history-card ul {
   max-height: 320px;
   overflow-y: auto;
   padding-right: 4px;
+  margin: 0;
+}
+
+.history-list {
+  max-height: 260px;
+  overflow: auto;
+  padding: 0;
+  margin: 0;
 }
 
 .history-card ul li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  background: rgba(248, 251, 255, 0.95);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  color: var(--text);
+  line-height: 1.5;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
+}
+
+.history-card ul li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+}
+
+.history-card ul li .history-entry {
+  flex: 1 1 180px;
+  min-width: 180px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.history-card ul li .history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  flex: 0 1 auto;
+}
+
+.history-card ul li .history-actions button {
+  padding: 10px 14px;
+  min-width: 88px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    transform var(--transition);
+}
+
+.history-card ul li .history-actions button:hover {
+  background: var(--primary);
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 .chart-card h2,
@@ -574,7 +744,6 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   margin-bottom: 25px;
 }
 
@@ -583,7 +752,7 @@ button:active {
 
   border-radius: 999px;
 
-  background: #dcfce7;
+  background: #d6fde4;
   color: var(--success);
 
   font-size: 13px;
@@ -754,11 +923,52 @@ body.dark {
   color: white;
 }
 
+body.dark .login-card {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.dark .login-card h1,
+input,
+.auth-actions button {
+  color: white;
+}
+
+body.dark .online-badge {
+  background: #d6fde4;
+  color: var(--success);
+}
+
+body.dark .card {
+  background: var(--dark-card);
+}
+
 body.dark .sidebar,
 body.dark .glass,
 body.dark .mobile-top {
   background: rgba(15, 23, 42, 0.75);
   border-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark .history-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.dark .history-card ul li {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+}
+
+body.dark .history-card ul li .history-actions button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+body.dark .history-card ul li .history-actions button:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 body.dark .bottom-sidebar,
@@ -775,7 +985,7 @@ body.dark .table td {
 body.dark p,
 body.dark span,
 body.dark small {
-  color: #cbd5e1;
+  color: #ffffff;
 }
 
 body.dark .menu a {
@@ -819,6 +1029,15 @@ body.dark .table th {
     color: var(--primary);
   }
 
+  .mobile-top > div {
+    display: flex;
+    gap: 8px;
+  }
+
+  .mobile-top button {
+    width: auto;
+  }
+
   .sidebar {
     left: -100%;
   }
@@ -847,8 +1066,15 @@ body.dark .table th {
     flex-direction: column;
   }
 
-  button {
+  .page-actions button,
+  .history-page-actions button,
+  .auth-actions button {
     width: 100%;
+  }
+
+  .dashboard-aside {
+    max-width: 100%;
+    flex: 1 1 100%;
   }
 }
 

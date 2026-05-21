@@ -11,6 +11,23 @@ const STORAGE_KEYS = {
 const qs = s => document.querySelector(s);
 const qsa = s => Array.from(document.querySelectorAll(s));
 
+// safe listener helper: add event listener if element exists
+function safeAddListener(selector, event, handler) {
+  const el = qs(selector);
+  if (el) el.addEventListener(event, handler);
+}
+
+// set textContent if element exists (reduces repetitive qs checks)
+function setTextIfExists(selector, text) {
+  const el = qs(selector);
+  if (el) el.textContent = text;
+}
+
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+  localStorage.setItem('ptr_theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+}
+
 function toast(msg, opts = {}) {
   const wrap = qs('.toast-wrap') || (function () {
     const e = document.createElement('div'); e.className = 'toast-wrap'; document.body.appendChild(e); return e;
@@ -134,7 +151,15 @@ function computeSummary(email) {
 }
 
 /* ---------- Render / UI ---------- */
-function renderUserInUI(user) { qs('#userName').textContent = user.name; qs('#userRole').textContent = user.role; qs('#avatar').textContent = user.avatar || initials(user.name); }
+function renderUserInUI(user) {
+  const avatar = user.avatar || initials(user.name);
+  setTextIfExists('#sidebarUserName', user.name);
+  setTextIfExists('#sidebarUserRole', user.role);
+  setTextIfExists('#sidebarAvatar', avatar);
+  setTextIfExists('#cardUserName', user.name);
+  setTextIfExists('#cardUserRole', user.role);
+  setTextIfExists('#cardAvatar', avatar);
+}
 
 function refreshDashboard() {
   const s = getSession(); if (!s) return; const user = findUserByEmail(s.email); if (!user) return; const sum = computeSummary(user.email);
@@ -148,9 +173,31 @@ function refreshDashboard() {
 
 // Show/hide pages
 function mostrarTela(id) {
-  qsa('.tela').forEach(t => t.style.display = 'none');
-  const el = qs('#' + id);
-  if (el) el.style.display = 'block';
+  qsa('.tela').forEach(tela => {
+    tela.style.display = 'none';
+  });
+
+  const telaAtual = qs(`#${id}`);
+
+  if (telaAtual) {
+    telaAtual.style.display = 'block';
+  }
+
+  // active sidebar link
+  qsa('.menu a').forEach(link => link.classList.remove('active'));
+  // set active and aria-current for accessibility
+  const active = qsa('.menu a').find(l => l.getAttribute('onclick')?.includes(`mostrarTela('${id}')`));
+  if (active) { active.classList.add('active'); active.setAttribute('aria-current', 'page'); }
+
+  // page title update
+  const labels = {
+    dashboard: 'Dashboard',
+    historico: 'Histórico',
+    relatorios: 'Relatórios',
+    funcionarios: 'Funcionários'
+  };
+  if (qs('#dash-title')) qs('#dash-title').textContent = labels[id] || 'Pointer';
+
   // update charts/data when navigating
   if (id === 'dashboard') { iniciarGraficos(); refreshDashboard(); }
   if (id === 'historico') { renderHistory(); }
@@ -162,10 +209,26 @@ function mostrarTela(id) {
 function renderHistory() {
   const s = getSession(); if (!s) return; const events = loadRecords(s.email);
   // dashboard list (recent)
-  const recent = qs('#lista'); if (recent) { recent.innerHTML = ''; events.slice(-6).reverse().forEach((ev, i) => { const li = document.createElement('li'); const idx = events.length - 1 - i; li.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${ev.type.toUpperCase()}</strong> — ${formatTime(ev.ts)}</div><div style="display:flex;gap:8px"><button onclick="editHistoryEntry(${idx})">Editar</button><button onclick="deleteHistoryEntry(${idx})">Apagar</button></div></div>`; recent.appendChild(li); }); }
+  const recent = qs('#lista'); if (recent) {
+    recent.innerHTML = '';
+    events.slice(-6).reverse().forEach((ev, i) => {
+      const li = document.createElement('li');
+      const idx = events.length - 1 - i;
+      li.innerHTML = `<div class="history-entry"><strong>${ev.type.toUpperCase()}</strong> — ${formatTime(ev.ts)}</div><div class="history-actions"><button type="button" onclick="editHistoryEntry(${idx})">Editar</button><button type="button" onclick="deleteHistoryEntry(${idx})">Apagar</button></div>`;
+      recent.appendChild(li);
+    });
+  }
 
   // full historico page
-  const full = qs('#lista-hist'); if (full) { full.innerHTML = ''; events.slice().reverse().forEach((ev, i) => { const realIdx = events.length - 1 - i; const li = document.createElement('li'); li.style.display = 'flex'; li.style.justifyContent = 'space-between'; li.style.alignItems = 'center'; li.innerHTML = `<div><strong>${ev.type.toUpperCase()}</strong> — ${formatTime(ev.ts)}</div><div style="display:flex;gap:8px"><button onclick="editHistoryEntry(${realIdx})">Editar</button><button onclick="deleteHistoryEntry(${realIdx})">Apagar</button></div>`; full.appendChild(li); }); }
+  const full = qs('#lista-hist'); if (full) {
+    full.innerHTML = '';
+    events.slice().reverse().forEach((ev, i) => {
+      const realIdx = events.length - 1 - i;
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="history-entry"><strong>${ev.type.toUpperCase()}</strong> — ${formatTime(ev.ts)}</div><div class="history-actions"><button type="button" onclick="editHistoryEntry(${realIdx})">Editar</button><button type="button" onclick="deleteHistoryEntry(${realIdx})">Apagar</button></div>`;
+      full.appendChild(li);
+    });
+  }
 }
 
 function editHistoryEntry(index) {
@@ -229,22 +292,33 @@ function handleSearch(e) {
 /* ---------- Init ---------- */
 function boot() {
   // wire auth forms
-  qs('#form-register').addEventListener('submit', handleRegister);
-  qs('#form-login').addEventListener('submit', handleLogin);
-  if (qs('#btn-logout')) qs('#btn-logout').addEventListener('click', logout);
-  if (qs('#btn-entrada')) qs('#btn-entrada').addEventListener('click', startEntrada);
-  if (qs('#btn-pausa-start')) qs('#btn-pausa-start').addEventListener('click', startPausa);
-  if (qs('#btn-pausa-end')) qs('#btn-pausa-end').addEventListener('click', endPausa);
-  if (qs('#btn-saida')) qs('#btn-saida').addEventListener('click', endSaida);
+  safeAddListener('#form-register', 'submit', handleRegister);
+  safeAddListener('#form-login', 'submit', handleLogin);
+  safeAddListener('#btn-logout', 'click', logout);
+  safeAddListener('#btn-entrada', 'click', startEntrada);
+  safeAddListener('#btn-pausa-start', 'click', startPausa);
+  safeAddListener('#btn-pausa-end', 'click', endPausa);
+  safeAddListener('#btn-saida', 'click', endSaida);
   // historico page buttons (duplicate actions)
-  if (qs('#btn-entrada-h')) qs('#btn-entrada-h').addEventListener('click', startEntrada);
-  if (qs('#btn-pausa-start-h')) qs('#btn-pausa-start-h').addEventListener('click', startPausa);
-  if (qs('#btn-pausa-end-h')) qs('#btn-pausa-end-h').addEventListener('click', endPausa);
-  if (qs('#btn-saida-h')) qs('#btn-saida-h').addEventListener('click', endSaida);
-  if (qs('#searchHist')) qs('#searchHist').addEventListener('input', handleSearch);
-  if (qs('#searchHistPage')) qs('#searchHistPage').addEventListener('input', (e) => { if (qs('#searchHist')) qs('#searchHist').value = e.target.value; handleSearch(e); });
-  qs('#toggle-theme').addEventListener('click', () => { document.body.classList.toggle('dark'); localStorage.setItem('ptr_theme', document.body.classList.contains('dark') ? 'dark' : 'light'); });
-  if (qs('#toggle-theme-sidebar')) qs('#toggle-theme-sidebar').addEventListener('click', () => { document.body.classList.toggle('dark'); localStorage.setItem('ptr_theme', document.body.classList.contains('dark') ? 'dark' : 'light'); });
+  safeAddListener('#btn-entrada-h', 'click', startEntrada);
+  safeAddListener('#btn-pausa-start-h', 'click', startPausa);
+  safeAddListener('#btn-pausa-end-h', 'click', endPausa);
+  safeAddListener('#btn-saida-h', 'click', endSaida);
+  safeAddListener('#searchHist', 'input', handleSearch);
+  safeAddListener('#searchHistPage', 'input', (e) => { if (qs('#searchHist')) qs('#searchHist').value = e.target.value; handleSearch(e); });
+  safeAddListener('#toggle-theme', 'click', toggleTheme);
+  safeAddListener('#toggle-theme-sidebar', 'click', toggleTheme);
+
+  // keep mobile sidebar button aria-expanded in sync (the HTML has an inline onclick that toggles class)
+  safeAddListener('button[aria-controls="sidebar"]', 'click', (e) => {
+    const btn = e.currentTarget;
+    const sidebar = document.getElementById(btn.getAttribute('aria-controls'));
+    if (!sidebar) return;
+    // defer to let inline onclick run first, then read state
+    setTimeout(() => {
+      btn.setAttribute('aria-expanded', sidebar.classList.contains('active') ? 'true' : 'false');
+    }, 0);
+  });
 
   // restore theme
   if (localStorage.getItem('ptr_theme') === 'dark') document.body.classList.add('dark');
