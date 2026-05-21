@@ -147,55 +147,55 @@ function refreshDashboard() {
 }
 
 // Show/hide pages
-function mostrarTela(id){
-  qsa('.tela').forEach(t=> t.style.display = 'none');
-  const el = qs('#'+id);
-  if(el) el.style.display = 'block';
+function mostrarTela(id) {
+  qsa('.tela').forEach(t => t.style.display = 'none');
+  const el = qs('#' + id);
+  if (el) el.style.display = 'block';
   // update charts/data when navigating
-  if(id==='dashboard'){ iniciarGraficos(); refreshDashboard(); }
-  if(id==='historico'){ renderHistory(); }
-  if(id==='relatorios'){ renderReports(); }
-  if(id==='funcionarios'){ renderEmployees(); }
+  if (id === 'dashboard') { iniciarGraficos(); refreshDashboard(); }
+  if (id === 'historico') { renderHistory(); }
+  if (id === 'relatorios') { renderReports(); }
+  if (id === 'funcionarios') { renderEmployees(); }
 }
 
 // enhanced history rendering with edit/delete and support for historico page
-function renderHistory(){
-  const s = getSession(); if(!s) return; const events = loadRecords(s.email);
+function renderHistory() {
+  const s = getSession(); if (!s) return; const events = loadRecords(s.email);
   // dashboard list (recent)
-  const recent = qs('#lista'); if(recent){ recent.innerHTML=''; events.slice(-6).reverse().forEach((ev, i)=>{ const li=document.createElement('li'); const idx = events.length-1 - i; li.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${ev.type.toUpperCase()}</strong> — ${formatTime(ev.ts)}</div><div style="display:flex;gap:8px"><button onclick="editHistoryEntry(${idx})">Editar</button><button onclick="deleteHistoryEntry(${idx})">Apagar</button></div></div>`; recent.appendChild(li); }); }
+  const recent = qs('#lista'); if (recent) { recent.innerHTML = ''; events.slice(-6).reverse().forEach((ev, i) => { const li = document.createElement('li'); const idx = events.length - 1 - i; li.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${ev.type.toUpperCase()}</strong> — ${formatTime(ev.ts)}</div><div style="display:flex;gap:8px"><button onclick="editHistoryEntry(${idx})">Editar</button><button onclick="deleteHistoryEntry(${idx})">Apagar</button></div></div>`; recent.appendChild(li); }); }
 
   // full historico page
-  const full = qs('#lista-hist'); if(full){ full.innerHTML=''; events.slice().reverse().forEach((ev, i)=>{ const realIdx = events.length-1 - i; const li=document.createElement('li'); li.style.display='flex'; li.style.justifyContent='space-between'; li.style.alignItems='center'; li.innerHTML = `<div><strong>${ev.type.toUpperCase()}</strong> — ${formatTime(ev.ts)}</div><div style="display:flex;gap:8px"><button onclick="editHistoryEntry(${realIdx})">Editar</button><button onclick="deleteHistoryEntry(${realIdx})">Apagar</button></div>`; full.appendChild(li); }); }
+  const full = qs('#lista-hist'); if (full) { full.innerHTML = ''; events.slice().reverse().forEach((ev, i) => { const realIdx = events.length - 1 - i; const li = document.createElement('li'); li.style.display = 'flex'; li.style.justifyContent = 'space-between'; li.style.alignItems = 'center'; li.innerHTML = `<div><strong>${ev.type.toUpperCase()}</strong> — ${formatTime(ev.ts)}</div><div style="display:flex;gap:8px"><button onclick="editHistoryEntry(${realIdx})">Editar</button><button onclick="deleteHistoryEntry(${realIdx})">Apagar</button></div>`; full.appendChild(li); }); }
 }
 
-function editHistoryEntry(index){
-  const s=getSession(); if(!s) return; const email=s.email; const records=loadRecords(email);
-  if(!records[index]) { toast('Registro não encontrado'); return; }
+function editHistoryEntry(index) {
+  const s = getSession(); if (!s) return; const email = s.email; const records = loadRecords(email);
+  if (!records[index]) { toast('Registro não encontrado'); return; }
   const entry = records[index];
   const newType = prompt('Editar tipo (entrada/pausa_start/pausa_end/saida):', entry.type);
-  if(!newType) return;
+  if (!newType) return;
   const newTs = prompt('Editar timestamp (ms desde 1970) ou deixe vazio para manter:', entry.ts);
   entry.type = newType;
-  if(newTs) entry.ts = parseInt(newTs,10) || entry.ts;
+  if (newTs) entry.ts = parseInt(newTs, 10) || entry.ts;
   saveRecords(email, records);
   toast('Registro atualizado');
   renderHistory(); renderReports(); refreshDashboard();
 }
 
-function deleteHistoryEntry(index){
-  const s=getSession(); if(!s) return; const email=s.email; const records=loadRecords(email);
-  if(!records[index]) { toast('Registro não encontrado'); return; }
-  if(!confirm('Remover este registro?')) return;
-  records.splice(index,1); saveRecords(email, records); toast('Registro removido'); renderHistory(); renderReports(); refreshDashboard();
+function deleteHistoryEntry(index) {
+  const s = getSession(); if (!s) return; const email = s.email; const records = loadRecords(email);
+  if (!records[index]) { toast('Registro não encontrado'); return; }
+  if (!confirm('Remover este registro?')) return;
+  records.splice(index, 1); saveRecords(email, records); toast('Registro removido'); renderHistory(); renderReports(); refreshDashboard();
 }
 
 /* ---------- Reports & Employees rendering ---------- */
-function renderReports(){
-  const tbody = qs('#table-reports tbody'); if(!tbody) return; tbody.innerHTML=''; const users = loadUsers(); users.forEach(u=>{ const s = computeSummary(u.email); const tr = document.createElement('tr'); tr.innerHTML = `<td>${u.name}</td><td>${hhmmss(Math.floor(s.workedSeconds))}</td><td>${s.extrasHours}h</td><td>${s.days}d</td>`; tbody.appendChild(tr); });
+function renderReports() {
+  const tbody = qs('#table-reports tbody'); if (!tbody) return; tbody.innerHTML = ''; const users = loadUsers(); users.forEach(u => { const s = computeSummary(u.email); const tr = document.createElement('tr'); tr.innerHTML = `<td>${u.name}</td><td>${hhmmss(Math.floor(s.workedSeconds))}</td><td>${s.extrasHours}h</td><td>${s.days}d</td>`; tbody.appendChild(tr); });
 }
 
-function renderEmployees(){
-  const ul = qs('#emp-list'); if(!ul) return; ul.innerHTML=''; const users = loadUsers(); users.forEach(u=>{ const li = document.createElement('li'); li.style.padding='10px'; li.style.borderBottom='1px solid rgba(0,0,0,0.04)'; li.textContent = `${u.name} — ${u.role} — ${u.email}`; ul.appendChild(li); });
+function renderEmployees() {
+  const ul = qs('#emp-list'); if (!ul) return; ul.innerHTML = ''; const users = loadUsers(); users.forEach(u => { const li = document.createElement('li'); li.style.padding = '10px'; li.style.borderBottom = '1px solid rgba(0,0,0,0.04)'; li.textContent = `${u.name} — ${u.role} — ${u.email}`; ul.appendChild(li); });
 }
 
 /* ---------- Charts ---------- */
@@ -231,20 +231,20 @@ function boot() {
   // wire auth forms
   qs('#form-register').addEventListener('submit', handleRegister);
   qs('#form-login').addEventListener('submit', handleLogin);
-  if(qs('#btn-logout')) qs('#btn-logout').addEventListener('click', logout);
-  if(qs('#btn-entrada')) qs('#btn-entrada').addEventListener('click', startEntrada);
-  if(qs('#btn-pausa-start')) qs('#btn-pausa-start').addEventListener('click', startPausa);
-  if(qs('#btn-pausa-end')) qs('#btn-pausa-end').addEventListener('click', endPausa);
-  if(qs('#btn-saida')) qs('#btn-saida').addEventListener('click', endSaida);
+  if (qs('#btn-logout')) qs('#btn-logout').addEventListener('click', logout);
+  if (qs('#btn-entrada')) qs('#btn-entrada').addEventListener('click', startEntrada);
+  if (qs('#btn-pausa-start')) qs('#btn-pausa-start').addEventListener('click', startPausa);
+  if (qs('#btn-pausa-end')) qs('#btn-pausa-end').addEventListener('click', endPausa);
+  if (qs('#btn-saida')) qs('#btn-saida').addEventListener('click', endSaida);
   // historico page buttons (duplicate actions)
-  if(qs('#btn-entrada-h')) qs('#btn-entrada-h').addEventListener('click', startEntrada);
-  if(qs('#btn-pausa-start-h')) qs('#btn-pausa-start-h').addEventListener('click', startPausa);
-  if(qs('#btn-pausa-end-h')) qs('#btn-pausa-end-h').addEventListener('click', endPausa);
-  if(qs('#btn-saida-h')) qs('#btn-saida-h').addEventListener('click', endSaida);
-  if(qs('#searchHist')) qs('#searchHist').addEventListener('input', handleSearch);
-  if(qs('#searchHistPage')) qs('#searchHistPage').addEventListener('input', (e)=>{ if(qs('#searchHist')) qs('#searchHist').value = e.target.value; handleSearch(e); });
+  if (qs('#btn-entrada-h')) qs('#btn-entrada-h').addEventListener('click', startEntrada);
+  if (qs('#btn-pausa-start-h')) qs('#btn-pausa-start-h').addEventListener('click', startPausa);
+  if (qs('#btn-pausa-end-h')) qs('#btn-pausa-end-h').addEventListener('click', endPausa);
+  if (qs('#btn-saida-h')) qs('#btn-saida-h').addEventListener('click', endSaida);
+  if (qs('#searchHist')) qs('#searchHist').addEventListener('input', handleSearch);
+  if (qs('#searchHistPage')) qs('#searchHistPage').addEventListener('input', (e) => { if (qs('#searchHist')) qs('#searchHist').value = e.target.value; handleSearch(e); });
   qs('#toggle-theme').addEventListener('click', () => { document.body.classList.toggle('dark'); localStorage.setItem('ptr_theme', document.body.classList.contains('dark') ? 'dark' : 'light'); });
-  if(qs('#toggle-theme-sidebar')) qs('#toggle-theme-sidebar').addEventListener('click', () => { document.body.classList.toggle('dark'); localStorage.setItem('ptr_theme', document.body.classList.contains('dark') ? 'dark' : 'light'); });
+  if (qs('#toggle-theme-sidebar')) qs('#toggle-theme-sidebar').addEventListener('click', () => { document.body.classList.toggle('dark'); localStorage.setItem('ptr_theme', document.body.classList.contains('dark') ? 'dark' : 'light'); });
 
   // restore theme
   if (localStorage.getItem('ptr_theme') === 'dark') document.body.classList.add('dark');
