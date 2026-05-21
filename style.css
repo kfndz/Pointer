@@ -55,7 +55,7 @@ body {
   background: linear-gradient(135deg, var(--bg), var(--bg-secondary));
   color: var(--text);
   overflow-x: hidden;
-  min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -235,7 +235,7 @@ body:not(.logged-in) .mobile-top {
   align-items: center;
   justify-content: center;
   margin-left: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 35px;
 }
 
@@ -1026,51 +1026,65 @@ body.dark .table th {
   .bottom-grid {
     grid-template-columns: 1fr;
   }
+
+  .page-grid {
+    flex-direction: column;
+  }
+
+  .dashboard-content,
+  .dashboard-aside {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 900px) {
+  body.logged-in .mobile-top {
+    display: flex;
+  }
+
+  body:not(.logged-in) .mobile-top {
+    display: none;
+  }
+
   .mobile-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
 
-    padding: var(--space-md);
+    padding: 14px;
 
     position: sticky;
     top: 0;
 
-    z-index: 999;
-  }
+    z-index: 1200;
 
-  .mobile-top h1 {
-    color: var(--primary);
-  }
-
-  .mobile-top > div {
-    display: flex;
-    gap: 8px;
-  }
-
-  .mobile-top button {
-    width: auto;
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.8);
   }
 
   .sidebar {
     left: -100%;
+    width: 280px;
   }
 
   .sidebar.active {
     left: 0;
   }
 
-  .main {
+  body.logged-in .main {
     margin-left: 0;
-    padding: 25px;
+    padding: 18px;
+  }
+
+  .main {
+    padding: 18px;
   }
 
   .topbar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 16px;
   }
 
   .top-right {
@@ -1079,47 +1093,145 @@ body.dark .table th {
     align-items: stretch;
   }
 
-  .actions {
+  .search,
+  .profile {
+    width: 100%;
+  }
+
+  .actions,
+  .page-actions,
+  .history-page-actions,
+  .auth-actions {
     flex-direction: column;
   }
 
+  .actions button,
   .page-actions button,
   .history-page-actions button,
   .auth-actions button {
     width: 100%;
   }
 
-  .dashboard-aside {
-    max-width: 100%;
-    flex: 1 1 100%;
-  }
-}
-
-@media (max-width: 600px) {
-  .main {
-    padding: var(--space-sm);
+  .stats {
+    grid-template-columns: 1fr;
   }
 
-  .login-card {
-    padding: 30px;
-    min-height: auto;
-  }
-
-  .login-card h1,
-  .top-left h1 {
-    font-size: 32px;
-  }
-
-  .card h2 {
-    font-size: 38px;
-  }
-
+  .charts,
+  .bottom-grid,
   .mini-stats {
     grid-template-columns: 1fr;
   }
 
+  .card,
+  .history-card,
+  .chart-card,
+  .activity-card,
+  .productivity-card {
+    padding: 18px;
+  }
+
+  .history-card ul li {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .history-card ul li .history-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .history-card ul li .history-actions button {
+    flex: 1;
+  }
+
+  .table {
+    min-width: 650px;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 600px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  body,
+  .main {
+    min-height: 100dvh;
+  }
+
+  .main {
+    padding: 12px;
+  }
+
+  .login-card {
+    padding: 22px;
+    border-radius: 20px;
+  }
+
+  .login-card h1,
+  .top-left h1 {
+    font-size: 26px;
+    line-height: 1.2;
+  }
+
+  .top-left p,
+  .login-card p {
+    font-size: 14px;
+  }
+
+  .logo {
+    font-size: 28px;
+  }
+
+  .card h2 {
+    font-size: 30px;
+  }
+
+  input,
+  button {
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  .profile {
+    padding: 12px;
+  }
+
+  .avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .card,
+  .mini-card,
+  .history-card {
+    border-radius: 18px;
+  }
+
   .stats {
-    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .charts,
+  .bottom-grid,
+  .page-grid {
+    gap: 14px;
+  }
+
+  .toast-wrap {
+    right: 10px;
+    left: 10px;
+    top: 10px;
+  }
+
+  .toast {
+    width: 100%;
   }
 }
 
@@ -1137,21 +1249,6 @@ body.dark .table th {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* Centered login wrapper (literal center) */
-.main {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 28px;
-}
-
-body.logged-in .main {
-  display: block;
-  margin-left: 290px;
-  padding: 28px;
 }
 
 #sistema {
