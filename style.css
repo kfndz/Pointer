@@ -934,9 +934,15 @@ body.dark .login-card {
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-body.dark .login-card h1,
-input,
-.auth-actions button {
+body.dark .login-card h1 {
+  color: white;
+}
+
+body.dark input {
+  color: white;
+}
+
+body.dark .auth-actions button {
   color: white;
 }
 
