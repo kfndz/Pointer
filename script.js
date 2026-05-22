@@ -57,10 +57,44 @@ function saveUsers(list) { localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringi
 
 function findUserByEmail(email) { return loadUsers().find(u => u.email.toLowerCase() === email.toLowerCase()); }
 
+function isAdmin() {
+
+  const users = loadUsers();
+
+  if (!users.find(u => u.email === 'admin@pointer.com')) {
+    users.push({
+      id: Date.now(),
+      name: 'Administrador',
+      email: 'admin@pointer.com',
+      password:'admin123',
+      role: 'admin',
+      isAdmin: true,
+      avatar: 'AD' 
+    });
+
+    saveUsers(users);
+  }
+
+  const session = getSession();
+  if (!session) return false;
+
+  const user = findUserByEmail(session.email);
+
+  return user?.isAdmin === true;
+}
+
 function registerUser({ name, email, password, role }) {
   const users = loadUsers();
   if (findUserByEmail(email)) { toast('Email já cadastrado'); return false; }
-  users.push({ id: Date.now(), name, email, password, role, avatar: initials(name) });
+  users.push({
+    id: Date.now(),
+    name,
+    email,
+    password,
+    role,
+    isAdmin: false,
+    avatar: initials(name)
+  });
   saveUsers(users);
   toast('Cadastro realizado com sucesso');
   return true;
@@ -142,16 +176,39 @@ function computeSummary(email) {
     const d = new Date(ev.ts); days.add(d.toDateString());
     if (ev.type === 'entrada') { currentEntrada = ev.ts; lastPausa = null; }
     if (ev.type === 'pausa_start') { lastPausa = ev.ts; }
-    if (ev.type === 'pausa_end' && lastPausa) { totalPauseSeconds += Math.floor((ev.ts - lastPausa) / 1000); lastPausa = null; }
+    if (ev.type === 'pausa_end' && lastPausa) {
+      const pauseDuration = Math.floor ((ev.ts - lastPausa) / 1000);
+
+      totalPauseSeconds += pauseDuration;
+      pauses += pauseDuration;
+
+      lastPausa = null;
+    }
     if (ev.type === 'saida' && currentEntrada) { const dur = Math.floor((ev.ts - currentEntrada) / 1000); workedSeconds += Math.max(0, dur - totalPauseSeconds); currentEntrada = null; totalPauseSeconds = 0; }
   });
   // hours per week simple estimate
   extras = Math.max(0, workedSeconds / 3600 - (days.size * 8));
-  return { workedSeconds, pauses: totalPauseSeconds, extrasHours: Math.round(extras * 100) / 100, days: days.size };
+  return { workedSeconds, pauses, extrasHours: Math.round(extras * 100) / 100,
+    days: days.size
+  };
 }
 
 /* ---------- Render / UI ---------- */
 function renderUserInUI(user) {
+
+  const adminOnlyPages = ['relatorios', 'funcionarios'];
+
+    adminOnlyPages.forEach(page => {
+      const link = qsa(' .menu a').find(l =>
+        l.getAttribute('onclick')?.includes(page)
+      );
+
+      if (link) {
+        link.style.display = user.isAdmin ? 'flex' : 'none';
+
+      }
+    });
+
   const avatar = user.avatar || initials(user.name);
   setTextIfExists('#sidebarUserName', user.name);
   setTextIfExists('#sidebarUserRole', user.role);
@@ -159,6 +216,11 @@ function renderUserInUI(user) {
   setTextIfExists('#cardUserName', user.name);
   setTextIfExists('#cardUserRole', user.role);
   setTextIfExists('#cardAvatar', avatar);
+
+  setTextIfExists('#userName', user.name);
+  setTextIfExists('#userRole', user.role);
+  setTextIfExists('#userAvatar', user.avatar || initials(user.name));
+
 }
 
 function refreshDashboard() {
@@ -173,6 +235,12 @@ function refreshDashboard() {
 
 // Show/hide pages
 function mostrarTela(id) {
+
+  if((id === 'relatorios' || id === 'funcionarios') && !isAdmin()) {
+    toast('Acesso permitido apenas para administradores');
+    return;
+  }
+
   qsa('.tela').forEach(tela => {
     tela.style.display = 'none';
   });
@@ -237,7 +305,7 @@ function editHistoryEntry(index) {
   const entry = records[index];
   const newType = prompt('Editar tipo (entrada/pausa_start/pausa_end/saida):', entry.type);
   if (!newType) return;
-  const newTs = prompt('Editar timestamp (ms desde 1970) ou deixe vazio para manter:', entry.ts);
+  const newTs = prompt('Editar data/hora em timestamp', entry.ts);
   entry.type = newType;
   if (newTs) entry.ts = parseInt(newTs, 10) || entry.ts;
   saveRecords(email, records);

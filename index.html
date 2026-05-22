@@ -74,23 +74,34 @@
     <main class="main">
       <!-- LOGIN / REGISTER CARD -->
       <section class="login-card" id="loginBox" aria-labelledby="auth-title">
-        <div
-                <div
-                  id="cardAvatar"
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 18px;
-          "
-        >
-          <div class="badge">SaaS Premium</div>
-          <div style="font-size: 13px; color: var(--text-secondary)">
-            Interface profissional
-          </div>
-        </div>
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 18px;
+        ">
+          <div class="badge"> SaaS Premium</div>
+
+          <div 
+            id="cardAvatar"
+            style="
+              width: 44px;
+              height: 44px;
+              border-radius: 10px;
+              background: var(--primary);
+              color: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 700;
+              "
+          ></div>
+      </div>
+            
 
         <h1 id="auth-title">Pointer</h1>
         <p style="margin-bottom: 18px; color: var(--text-secondary)">
-                  <h4 id="cardUserName">—</h4>
+              <h4 id="cardUserName">—</h4>
         </p>
 
         <div class="auth-actions">
@@ -126,8 +137,7 @@
             />
             <datalist id="roles">
               <option>Colaborador</option>
-              <option>RH</option>
-              <option>Gestor</option>
+              <option>Admin</option>
             </datalist>
             <button type="submit">Criar conta</button>
           </form>
@@ -236,7 +246,7 @@
               </div>
               <div class="user-summary">
                 <div
-                  id="avatar"
+                  id="userAvatar"
                   style="
                     width: 56px;
                     height: 56px;
