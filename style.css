@@ -1051,14 +1051,10 @@ body.dark .table th {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     padding: 14px;
-
     position: sticky;
     top: 0;
-
     z-index: 1200;
-
     backdrop-filter: blur(20px);
     background: rgba(255, 255, 255, 0.8);
   }
@@ -1100,15 +1096,13 @@ body.dark .table th {
 
   .actions,
   .page-actions,
-  .history-page-actions,
-  .auth-actions {
+  .history-page-actions {
     flex-direction: column;
   }
 
   .actions button,
   .page-actions button,
-  .history-page-actions button,
-  .auth-actions button {
+  .history-page-actions button {
     width: 100%;
   }
 
@@ -1169,6 +1163,19 @@ body.dark .table th {
     padding: 12px;
   }
 
+  .auth-actions{
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .auth-actions button {
+    width: 100%;
+    flex: 0;
+    min-width: 0;
+    padding: 12px;
+    font-size: 14px;
+  }
+
   .login-card {
     padding: 22px;
     border-radius: 20px;
@@ -1176,7 +1183,7 @@ body.dark .table th {
 
   .login-card h1,
   .top-left h1 {
-    font-size: 26px;
+    font-size: 30px;
     line-height: 1.2;
   }
 
