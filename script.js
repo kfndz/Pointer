@@ -286,6 +286,8 @@ function handleLogin(e) {
 
   renderUserInUI(user);
 
+  renderAdminUserSelect();
+
   mostrarTela('dashboard');
 
   iniciarGraficos();
@@ -495,9 +497,11 @@ function renderUserInUI(user) {
 function refreshDashboard() {
   const session = getSession();
 
-  if (!session) return;
+  const targetEmail = (arguments.length > 0 && arguments[0]) || (session && session.email);
 
-  const user = findUserByEmail(session.email);
+  if (!targetEmail) return;
+
+  const user = findUserByEmail(targetEmail);
 
   if (!user) return;
 
@@ -588,7 +592,7 @@ function mostrarTela(id) {
    HISTORY
 ========================================================= */
 
-function buildHistoryHTML(ev, idx, includeDelete = false) {
+function buildHistoryHTML(ev, idx, includeDelete = false, showActions = true) {
   return `
   <div class="history-entry">
     <strong>${ev.type.toUpperCase()}</strong>
@@ -617,6 +621,9 @@ function buildHistoryHTML(ev, idx, includeDelete = false) {
     }
   </div>
 
+  ${
+    showActions
+      ? `
   <div class="history-actions">
     <button type="button"
       onclick="editHistoryEntry(${idx})">
@@ -639,20 +646,26 @@ function buildHistoryHTML(ev, idx, includeDelete = false) {
         : ''
     }
   </div>
+  `
+      : ''
+  }
   `;
 }
 
-function renderHistory() {
+function renderHistory(email) {
   const session = getSession();
 
-  if (!session) return;
+  if (!session && !email) return;
 
-  const events = loadRecords(session.email);
+  const targetEmail = email || session.email;
+
+  const events = loadRecords(targetEmail);
 
   const recent = qs('#lista');
 
   if (recent) {
     recent.innerHTML = '';
+    const showActions = session ? targetEmail === session.email : false;
 
     events
       .slice(-6)
@@ -662,7 +675,7 @@ function renderHistory() {
 
         const idx = events.length - 1 - i;
 
-        li.innerHTML = buildHistoryHTML(ev, idx);
+        li.innerHTML = buildHistoryHTML(ev, idx, false, showActions);
 
         recent.appendChild(li);
       });
@@ -672,6 +685,8 @@ function renderHistory() {
 
   if (full) {
     full.innerHTML = '';
+
+    const showActionsFull = session ? targetEmail === session.email : false;
 
     events
       .slice()
@@ -684,12 +699,53 @@ function renderHistory() {
         li.innerHTML = buildHistoryHTML(
           ev,
           realIdx,
-          true
+          true,
+          showActionsFull
         );
 
         full.appendChild(li);
       });
   }
+}
+
+function renderAdminUserSelect() {
+  const wrap = qs('#admin-panel');
+  const sel = qs('#admin-user-select');
+
+  if (!sel || !wrap) return;
+
+  if (!isAdmin()) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  wrap.style.display = 'block';
+
+  const users = loadUsers();
+
+  sel.innerHTML = '';
+
+  users.forEach((u) => {
+    const opt = document.createElement('option');
+    opt.value = u.email;
+    opt.textContent = `${u.name} (${u.email})`;
+    sel.appendChild(opt);
+  });
+
+  const session = getSession();
+  if (session) sel.value = session.email;
+}
+
+function viewEmployeeRecords(email) {
+  mostrarTela('historico');
+
+  const sel = qs('#admin-user-select');
+
+  if (sel) sel.value = email;
+
+  renderHistory(email);
+  iniciarGraficos(email);
+  refreshDashboard(email);
 }
 
 /* =========================================================
@@ -859,8 +915,14 @@ function renderEmployees() {
     li.style.borderBottom =
       '1px solid rgba(0,0,0,0.04)';
 
-    li.textContent =
-      `${u.name} — ${u.role} — ${u.email}`;
+    li.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>${u.name} — ${u.role} — ${u.email}</div>
+        <div>
+          <button type="button" onclick="viewEmployeeRecords('${u.email}')">Ver registros</button>
+        </div>
+      </div>
+    `;
 
     ul.appendChild(li);
   });
@@ -873,8 +935,58 @@ function renderEmployees() {
 let chartLine = null;
 let chartDonut = null;
 
+function computeWeeklyHours(email) {
+  const events = (loadRecords(email) || []).slice().sort((a, b) => a.ts - b.ts);
+
+  // index 0 => Seg, ... 6 => Dom
+  const hours = [0, 0, 0, 0, 0, 0, 0];
+
+  let currentEntrada = null;
+  let lastPausa = null;
+  let totalPauseSeconds = 0;
+
+  events.forEach((ev) => {
+    const d = new Date(ev.ts);
+    let dayIndex = d.getDay(); // 0 Sun, 1 Mon ...
+    // convert to Monday=0 ... Sunday=6 index
+    dayIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+
+    if (ev.type === 'entrada') {
+      currentEntrada = ev.ts;
+      lastPausa = null;
+      totalPauseSeconds = 0;
+    }
+
+    if (ev.type === 'pausa_start') {
+      lastPausa = ev.ts;
+    }
+
+    if (ev.type === 'pausa_end' && lastPausa) {
+      const pauseDuration = Math.floor((ev.ts - lastPausa) / 1000);
+      totalPauseSeconds += pauseDuration;
+      lastPausa = null;
+    }
+
+    if (ev.type === 'saida' && currentEntrada) {
+      const dur = Math.floor((ev.ts - currentEntrada) / 1000);
+      const worked = Math.max(0, dur - totalPauseSeconds);
+
+      hours[dayIndex] += worked / 3600;
+
+      currentEntrada = null;
+      totalPauseSeconds = 0;
+      lastPausa = null;
+    }
+  });
+
+  return hours;
+}
+
 function iniciarGraficos() {
   if (typeof Chart !== 'function') return;
+
+  const session = getSession();
+  const targetEmail = (arguments.length > 0 && arguments[0]) || (session && session.email);
 
   const ctx = qs('#graficoLinha').getContext('2d');
 
@@ -892,9 +1004,14 @@ function iniciarGraficos() {
     'Dom'
   ];
 
-  const data = days.map(
-    () => Math.floor(Math.random() * 3) + 6
-  );
+  let data = days.map(() => 0);
+
+  if (targetEmail) {
+    const weekly = computeWeeklyHours(targetEmail); // returns hours per day
+    data = days.map((_, i) => Math.round((weekly[i] + Number.EPSILON) * 100) / 100);
+  } else {
+    data = days.map(() => Math.floor(Math.random() * 3) + 6);
+  }
 
   const grad = ctx.createLinearGradient(0, 0, 0, 200);
 
@@ -938,6 +1055,19 @@ function iniciarGraficos() {
     chartDonut.destroy();
   }
 
+  // Compute donut values: worked hours, pause hours, offline (expected - worked)
+  let donutValues = [30, 10, 10];
+
+  if (targetEmail) {
+    const sum = computeSummary(targetEmail);
+    const workedHours = Math.round((sum.workedSeconds / 3600) * 100) / 100;
+    const pauseHours = Math.round((sum.pauses / 3600) * 100) / 100;
+    const expected = sum.days * 8;
+    const offlineHours = Math.max(0, Math.round((expected - workedHours) * 100) / 100);
+
+    donutValues = [workedHours, pauseHours, offlineHours];
+  }
+
   chartDonut = new Chart(ctx2, {
     type: 'doughnut',
 
@@ -950,11 +1080,7 @@ function iniciarGraficos() {
 
       datasets: [
         {
-          data: [
-            Math.floor(Math.random() * 60) + 20,
-            Math.floor(Math.random() * 20) + 5,
-            Math.floor(Math.random() * 20) + 5
-          ],
+          data: donutValues,
 
           backgroundColor: [
             '#2563eb',
@@ -1094,6 +1220,12 @@ function boot() {
     toggleTheme
   );
 
+  safeAddListener('#admin-user-select', 'change', (e) => {
+    renderHistory(e.target.value);
+    iniciarGraficos(e.target.value);
+    refreshDashboard(e.target.value);
+  });
+
   safeAddListener(
     '#toggle-theme-sidebar',
     'click',
@@ -1115,6 +1247,8 @@ function boot() {
     renderUserInUI(
       findUserByEmail(session.email)
     );
+
+    renderAdminUserSelect();
 
     mostrarTela('dashboard');
 
