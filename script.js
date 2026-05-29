@@ -3,12 +3,200 @@ const STORAGE_KEYS = {
   SESSION: 'ptr_session_v1'
 };
 
+const API_URL = 'https://pointer-5zd3.onrender.com/api';
+
+/* =========================================================
+   SYNC - SINCRONIZAÇÃO COM SERVIDOR
+========================================================= */
+
+async function syncUserToServer(userData) {
+  try {
+    const response = await fetch(`${API_URL} /users/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData)
+    });
+
+    return response.ok;
+  } catch (e) {
+    console.warn('Erro ao sincronizar usuário com servidor:', e);
+    return false;
+  }
+}
+
+async function syncRecordsToServer(userEmail, records) {
+  try {
+    const response = await fetch(`${API_URL} /records/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userEmail, records })
+    });
+
+    return response.ok;
+  } catch (e) {
+    console.warn('Erro ao sincronizar registros com servidor:', e);
+    return false;
+  }
+}
+
+async function syncRecordToServer(userEmail, record) {
+  try {
+    const response = await fetch(`${API_URL}/records`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userEmail,
+        type: record.type,
+        ts: record.ts,
+        latitude: record.location?.lat || null,
+        longitude: record.location?.lng || null
+      })
+    });
+
+    return response.ok;
+  } catch (e) {
+    console.warn('Erro ao sincronizar registro com servidor:', e);
+    return false;
+  }
+}
+
+async function loadRecordsFromServer(userEmail) {
+  try {
+    const response = await fetch(`${API_URL}/records/${userEmail}`);
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+
+    return (data.records || []).map((record) => ({
+      type: record.type,
+      ts: record.ts,
+      adjustmentRequest: record.adjustmentRequest || null,
+      location:
+        record.latitude && record.longitude
+          ? {
+            lat: record.latitude,
+            lng: record.longitude
+          }
+          : null
+    }));
+  } catch (e) {
+    console.warn('Erro ao carregar registros do servidor:', e);
+    return [];
+  }
+}
+
+async function syncAllUsersToServer() {
+  try {
+    const users = loadUsers();
+
+    const response = await fetch(`${API_URL}/users/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+
+      console.log(
+        `Sincronizados ${result.synced} usuários com servidor`
+      );
+
+      return true;
+    }
+
+    return false;
+  } catch (e) {
+    console.warn(
+      'Erro ao sincronizar usuários com servidor:',
+      e
+    );
+
+    return false;
+  }
+}
+
+async function syncAllRecordsToServer() {
+  try {
+    const users = loadUsers();
+
+    let totalSynced = 0;
+
+    for (const user of users) {
+      const records = loadRecords(user.email);
+
+      if (records.length > 0) {
+        const response = await fetch(
+          `${API_URL}/records/sync`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              userEmail: user.email,
+              records
+            })
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+
+          totalSynced += result.synced;
+        }
+      }
+    }
+
+    console.log(
+      `Sincronizados ${totalSynced} registros com servidor`
+    );
+
+    return true;
+  } catch (e) {
+    console.warn(
+      'Erro ao sincronizar registros com servidor:',
+      e
+    );
+
+    return false;
+  }
+}
+
+async function loginAtServer(email, password) {
+  try {
+    const response = await fetch(`${API_URL}/users/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+
+    return data.user;
+  } catch (e) {
+    console.warn(
+      'Erro ao fazer login no servidor:',
+      e
+    );
+
+    return null;
+  }
+}
+
 /* =========================================================
    UTILITIES
 ========================================================= */
 
 const qs = (s) => document.querySelector(s);
-const qsa = (s) => Array.from(document.querySelectorAll(s));
+
+const qsa = (s) =>
+  Array.from(document.querySelectorAll(s));
 
 function safeAddListener(selector, event, handler) {
   const el = qs(selector);
@@ -41,26 +229,40 @@ function initials(name) {
 
 function formatTime(ts) {
   const d = new Date(ts);
+
   return d.toLocaleString('pt-BR');
 }
 
 function hhmmss(seconds) {
   const h = Math.floor(seconds / 3600);
+
   seconds %= 3600;
 
   const m = Math.floor(seconds / 60);
+
   const s = seconds % 60;
 
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${String(h).padStart(
+    2,
+    '0'
+  )}:${String(m).padStart(
+    2,
+    '0'
+  )}:${String(s).padStart(2, '0')}`;
 }
 
 function toast(msg, opts = {}) {
-  const wrap = qs('.toast-wrap') || (() => {
-    const e = document.createElement('div');
-    e.className = 'toast-wrap';
-    document.body.appendChild(e);
-    return e;
-  })();
+  const wrap =
+    qs('.toast-wrap') ||
+    (() => {
+      const e = document.createElement('div');
+
+      e.className = 'toast-wrap';
+
+      document.body.appendChild(e);
+
+      return e;
+    })();
 
   const t = document.createElement('div');
 
@@ -88,7 +290,9 @@ function toggleTheme() {
 
   localStorage.setItem(
     'ptr_theme',
-    document.body.classList.contains('dark') ? 'dark' : 'light'
+    document.body.classList.contains('dark')
+      ? 'dark'
+      : 'light'
   );
 }
 
@@ -98,19 +302,25 @@ function toggleTheme() {
 
 function loadUsers() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+    return JSON.parse(
+      localStorage.getItem(STORAGE_KEYS.USERS) || '[]'
+    );
   } catch {
     return [];
   }
 }
 
 function saveUsers(list) {
-  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(list));
+  localStorage.setItem(
+    STORAGE_KEYS.USERS,
+    JSON.stringify(list)
+  );
 }
 
 function findUserByEmail(email) {
   return loadUsers().find(
-    (u) => u.email.toLowerCase() === email.toLowerCase()
+    (u) =>
+      u.email.toLowerCase() === email.toLowerCase()
   );
 }
 
@@ -136,11 +346,17 @@ function ensureAdminUser() {
   }
 }
 
-function registerUser({ name, email, password, role }) {
+function registerUser({
+  name,
+  email,
+  password,
+  role
+}) {
   const users = loadUsers();
 
   if (findUserByEmail(email)) {
     toast('Email já cadastrado');
+
     return false;
   }
 
@@ -177,7 +393,9 @@ function setSession(email) {
 
 function getSession() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.SESSION));
+    return JSON.parse(
+      localStorage.getItem(STORAGE_KEYS.SESSION)
+    );
   } catch {
     return null;
   }
@@ -210,6 +428,56 @@ function isAdmin() {
   return user?.isAdmin === true;
 }
 
+async function restoreSession(session) {
+  try {
+    const localUser = findUserByEmail(session.email);
+
+    if (!localUser) {
+      logout();
+      return;
+    }
+
+    document.body.classList.add('logged-in');
+
+    qs('#loginBox').style.display = 'none';
+    qs('#sistema').style.display = 'block';
+
+    const serverRecords = await loadRecordsFromServer(
+      session.email
+    );
+
+    const localRecords = loadRecords(session.email);
+
+    const mergedRecords = mergeRecords(
+      localRecords,
+      serverRecords
+    );
+
+    saveRecords(session.email, mergedRecords);
+
+    renderUserInUI(localUser);
+
+    renderAdminUserSelect();
+
+    mostrarTela('dashboard');
+
+    iniciarGraficos();
+    refreshDashboard();
+    renderHistory();
+    renderReports();
+    renderEmployees();
+
+    console.log('Sessão restaurada');
+  } catch (e) {
+    console.warn(
+      'Erro ao restaurar sessão:',
+      e
+    );
+
+    logout();
+  }
+}
+
 /* =========================================================
    AUTH UI
 ========================================================= */
@@ -239,23 +507,35 @@ function handleRegister(e) {
   e.preventDefault();
 
   const name = qs('#name').value.trim();
+
   const email = qs('#reg-email').value.trim();
+
   const password = qs('#reg-senha').value;
+
   const role = qs('#role').value;
 
   if (!name || !email || !password) {
     toast('Preencha todos os campos');
+
     return;
   }
 
-  const ok = registerUser({
+  const userData = {
     name,
     email,
     password,
     role
-  });
+  };
+
+  const ok = registerUser(userData);
 
   if (ok) {
+    syncUserToServer(userData).then((success) => {
+      if (success) {
+        toast('Cadastro sincronizado na nuvem');
+      }
+    });
+
     setTimeout(() => {
       showAuthTab('login');
     }, 400);
@@ -266,33 +546,109 @@ function handleLogin(e) {
   e.preventDefault();
 
   const email = qs('#email').value.trim();
+
   const password = qs('#senha').value;
 
-  const user = findUserByEmail(email);
+  loginAtServer(email, password).then(
+    async (serverUser) => {
+      let user = null;
 
-  if (!user || user.password !== password) {
-    toast('Credenciais inválidas');
-    return;
-  }
+      if (serverUser) {
+        user = serverUser;
 
-  setSession(user.email);
+        const users = loadUsers();
 
-  document.body.classList.add('logged-in');
+        const existingIndex = users.findIndex(
+          (u) =>
+            u.email.toLowerCase() ===
+            email.toLowerCase()
+        );
 
-  qs('#loginBox').style.display = 'none';
-  qs('#sistema').style.display = 'block';
+        if (existingIndex >= 0) {
+          users[existingIndex] = {
+            ...users[existingIndex],
+            name: user.name,
+            password,
+            role: user.role,
+            isAdmin: user.isAdmin
+          };
+        } else {
+          users.push({
+            id: user.id || Date.now(),
+            name: user.name,
+            email: user.email,
+            password,
+            role: user.role,
+            isAdmin: user.isAdmin || false,
+            avatar:
+              user.avatar || initials(user.name)
+          });
+        }
 
-  toast(`Bem-vindo, ${user.name.split(' ')[0]}`);
+        saveUsers(users);
+      } else {
+        user = findUserByEmail(email);
 
-  renderUserInUI(user);
+        if (
+          !user ||
+          user.password !== password
+        ) {
+          toast('Credenciais inválidas');
 
-  renderAdminUserSelect();
+          return;
+        }
+      }
 
-  mostrarTela('dashboard');
+      setSession(user.email);
 
-  iniciarGraficos();
-  refreshDashboard();
-  renderHistory();
+      const serverRecords =
+        await loadRecordsFromServer(email);
+
+      const localRecords = loadRecords(email);
+
+      const mergedRecords = mergeRecords(
+        localRecords,
+        serverRecords
+      );
+
+      saveRecords(email, mergedRecords);
+
+      if (
+        localRecords.length >
+        serverRecords.length
+      ) {
+        await syncRecordsToServer(
+          email,
+          mergedRecords
+        );
+      }
+
+      toast('Dados sincronizados com sucesso');
+
+      document.body.classList.add('logged-in');
+
+      qs('#loginBox').style.display = 'none';
+
+      qs('#sistema').style.display = 'block';
+
+      toast(
+        `Bem-vindo, ${user.name.split(' ')[0]
+        }`
+      );
+
+      renderUserInUI(user);
+
+      renderAdminUserSelect();
+
+      mostrarTela('dashboard');
+
+      iniciarGraficos();
+      refreshDashboard();
+      renderHistory();
+      renderReports();
+      renderEmployees();
+    }
+  );
 }
 
 /* =========================================================
@@ -305,14 +661,41 @@ function recordsKey(email) {
 
 function loadRecords(email) {
   try {
-    return JSON.parse(localStorage.getItem(recordsKey(email)) || '[]');
+    return JSON.parse(
+      localStorage.getItem(recordsKey(email)) ||
+      '[]'
+    );
   } catch {
     return [];
   }
 }
 
 function saveRecords(email, records) {
-  localStorage.setItem(recordsKey(email), JSON.stringify(records));
+  localStorage.setItem(
+    recordsKey(email),
+    JSON.stringify(records)
+  );
+}
+
+function mergeRecords(
+  localRecords,
+  serverRecords
+) {
+  const mergedMap = new Map();
+
+  [...localRecords, ...serverRecords].forEach(
+    (record) => {
+      const key = `${record.type}_${record.ts}`;
+
+      if (!mergedMap.has(key)) {
+        mergedMap.set(key, record);
+      }
+    }
+  );
+
+  return Array.from(
+    mergedMap.values()
+  ).sort((a, b) => a.ts - b.ts);
 }
 
 function addEvent(email, ev) {
@@ -321,17 +704,23 @@ function addEvent(email, ev) {
   records.push(ev);
 
   saveRecords(email, records);
+
+  syncRecordToServer(email, ev);
 }
 
 /* =========================================================
    PONTO
 ========================================================= */
 
-function createEvent(type, successMessage) {
+function createEvent(
+  type,
+  successMessage
+) {
   const session = getSession();
 
   if (!session) {
     toast('Faça login');
+
     return;
   }
 
@@ -348,7 +737,9 @@ function createEvent(type, successMessage) {
         }
       });
 
-      toast(`${successMessage} com localização`);
+      toast(
+        `${successMessage} com localização`
+      );
 
       refreshDashboard();
       renderHistory();
@@ -360,7 +751,9 @@ function createEvent(type, successMessage) {
         ts: now()
       });
 
-      toast(`${successMessage} sem localização`);
+      toast(
+        `${successMessage} sem localização`
+      );
 
       refreshDashboard();
       renderHistory();
@@ -369,19 +762,31 @@ function createEvent(type, successMessage) {
 }
 
 function startEntrada() {
-  createEvent('entrada', 'Entrada registrada');
+  createEvent(
+    'entrada',
+    'Entrada registrada'
+  );
 }
 
 function startPausa() {
-  createEvent('pausa_start', 'Pausa iniciada');
+  createEvent(
+    'pausa_start',
+    'Pausa iniciada'
+  );
 }
 
 function endPausa() {
-  createEvent('pausa_end', 'Pausa encerrada');
+  createEvent(
+    'pausa_end',
+    'Pausa encerrada'
+  );
 }
 
 function endSaida() {
-  createEvent('saida', 'Saída registrada');
+  createEvent(
+    'saida',
+    'Saída registrada'
+  );
 }
 
 /* =========================================================
@@ -415,18 +820,25 @@ function computeSummary(email) {
       lastPausa = ev.ts;
     }
 
-    if (ev.type === 'pausa_end' && lastPausa) {
+    if (
+      ev.type === 'pausa_end' &&
+      lastPausa
+    ) {
       const pauseDuration = Math.floor(
         (ev.ts - lastPausa) / 1000
       );
 
       pauses += pauseDuration;
+
       totalPauseSeconds += pauseDuration;
 
       lastPausa = null;
     }
 
-    if (ev.type === 'saida' && currentEntrada) {
+    if (
+      ev.type === 'saida' &&
+      currentEntrada
+    ) {
       const dur = Math.floor(
         (ev.ts - currentEntrada) / 1000
       );
@@ -437,19 +849,21 @@ function computeSummary(email) {
       );
 
       currentEntrada = null;
+
       totalPauseSeconds = 0;
     }
   });
 
   extras = Math.max(
     0,
-    workedSeconds / 3600 - (days.size * 8)
+    workedSeconds / 3600 - days.size * 8
   );
 
   return {
     workedSeconds,
     pauses,
-    extrasHours: Math.round(extras * 100) / 100,
+    extrasHours:
+      Math.round(extras * 100) / 100,
     days: days.size
   };
 }
@@ -466,7 +880,9 @@ function renderUserInUI(user) {
 
   adminOnlyPages.forEach((page) => {
     const link = qsa('.menu a').find((l) =>
-      l.getAttribute('onclick')?.includes(page)
+      l
+        .getAttribute('onclick')
+        ?.includes(page)
     );
 
     if (link) {
@@ -476,17 +892,35 @@ function renderUserInUI(user) {
     }
   });
 
-  const avatar = user.avatar || initials(user.name);
+  const avatar =
+    user.avatar || initials(user.name);
 
-  setTextIfExists('#sidebarUserName', user.name);
-  setTextIfExists('#sidebarUserRole', user.role);
-  setTextIfExists('#sidebarAvatar', avatar);
+  setTextIfExists(
+    '#sidebarUserName',
+    user.name
+  );
 
-  setTextIfExists('#cardUserName', user.name);
+  setTextIfExists(
+    '#sidebarUserRole',
+    user.role
+  );
+
+  setTextIfExists(
+    '#sidebarAvatar',
+    avatar
+  );
+
+  setTextIfExists(
+    '#cardUserName',
+    user.name
+  );
+
   setTextIfExists('#cardAvatar', avatar);
 
   setTextIfExists('#userName', user.name);
+
   setTextIfExists('#userRole', user.role);
+
   setTextIfExists('#userAvatar', avatar);
 }
 
@@ -497,25 +931,31 @@ function renderUserInUI(user) {
 function refreshDashboard() {
   const session = getSession();
 
-  const targetEmail = (arguments.length > 0 && arguments[0]) || (session && session.email);
+  const targetEmail =
+    (arguments.length > 0 &&
+      arguments[0]) ||
+    (session && session.email);
 
   if (!targetEmail) return;
 
-  const user = findUserByEmail(targetEmail);
+  const user =
+    findUserByEmail(targetEmail);
 
   if (!user) return;
 
   const sum = computeSummary(user.email);
 
-  qs('#meta-hours').textContent = hhmmss(
-    Math.floor(sum.workedSeconds)
-  );
+  qs('#meta-hours').textContent =
+    hhmmss(Math.floor(sum.workedSeconds));
 
-  qs('#meta-extras').textContent = `${sum.extrasHours}h`;
+  qs('#meta-extras').textContent =
+    `${sum.extrasHours}h`;
 
-  qs('#meta-pauses').textContent = hhmmss(sum.pauses);
+  qs('#meta-pauses').textContent =
+    hhmmss(sum.pauses);
 
-  qs('#meta-days').textContent = `${sum.days}d`;
+  qs('#meta-days').textContent =
+    `${sum.days}d`;
 
   qs('#current-time').textContent =
     new Date().toLocaleTimeString();
@@ -527,10 +967,14 @@ function refreshDashboard() {
 
 function mostrarTela(id) {
   if (
-    (id === 'relatorios' || id === 'funcionarios') &&
+    (id === 'relatorios' ||
+      id === 'funcionarios') &&
     !isAdmin()
   ) {
-    toast('Acesso permitido apenas para administradores');
+    toast(
+      'Acesso permitido apenas para administradores'
+    );
+
     return;
   }
 
@@ -548,15 +992,22 @@ function mostrarTela(id) {
     link.classList.remove('active');
   });
 
-  const active = qsa('.menu a').find((l) =>
-    l.getAttribute('onclick')?.includes(
-      `mostrarTela('${id}')`
-    )
+  const active = qsa('.menu a').find(
+    (l) =>
+      l
+        .getAttribute('onclick')
+        ?.includes(
+          `mostrarTela('${id}')`
+        )
   );
 
   if (active) {
     active.classList.add('active');
-    active.setAttribute('aria-current', 'page');
+
+    active.setAttribute(
+      'aria-current',
+      'page'
+    );
   }
 
   const labels = {
@@ -567,7 +1018,8 @@ function mostrarTela(id) {
   };
 
   if (qs('#dash-title')) {
-    qs('#dash-title').textContent = labels[id] || 'Pointer';
+    qs('#dash-title').textContent =
+      labels[id] || 'Pointer';
   }
 
   if (id === 'dashboard') {
@@ -592,37 +1044,41 @@ function mostrarTela(id) {
    HISTORY
 ========================================================= */
 
-function buildHistoryHTML(ev, idx, includeDelete = false, showActions = true) {
+function buildHistoryHTML(
+  ev,
+  idx,
+  includeDelete = false,
+  showActions = true
+) {
   return `
   <div class="history-entry">
     <strong>${ev.type.toUpperCase()}</strong>
     — ${formatTime(ev.ts)}
 
-    ${
-      ev.location
-        ? `
+    ${ev.location
+      ? `
         <small>
-          📍 ${ev.location.lat.toFixed(4)},
+          📍 ${ev.location.lat.toFixed(
+        4
+      )},
           ${ev.location.lng.toFixed(4)}
         </small>
       `
-        : ''
+      : ''
     }
 
-    ${
-      ev.adjustmentRequest
-        ? `
+    ${ev.adjustmentRequest
+      ? `
         <small>
           🛠 Ajuste solicitado
           (${ev.adjustmentRequest.status})
         </small>
       `
-        : ''
+      : ''
     }
   </div>
 
-  ${
-    showActions
+  ${showActions
       ? `
   <div class="history-actions">
     <button type="button"
@@ -635,8 +1091,7 @@ function buildHistoryHTML(ev, idx, includeDelete = false, showActions = true) {
       Solicitar ajuste
     </button>
 
-    ${
-      includeDelete
+    ${includeDelete
         ? `
         <button type="button"
           onclick="deleteHistoryEntry(${idx})">
@@ -644,11 +1099,11 @@ function buildHistoryHTML(ev, idx, includeDelete = false, showActions = true) {
         </button>
       `
         : ''
-    }
+      }
   </div>
   `
       : ''
-  }
+    }
   `;
 }
 
@@ -657,7 +1112,8 @@ function renderHistory(email) {
 
   if (!session && !email) return;
 
-  const targetEmail = email || session.email;
+  const targetEmail =
+    email || session.email;
 
   const events = loadRecords(targetEmail);
 
@@ -665,17 +1121,27 @@ function renderHistory(email) {
 
   if (recent) {
     recent.innerHTML = '';
-    const showActions = session ? targetEmail === session.email : false;
+
+    const showActions = session
+      ? targetEmail === session.email
+      : false;
 
     events
       .slice(-6)
       .reverse()
       .forEach((ev, i) => {
-        const li = document.createElement('li');
+        const li =
+          document.createElement('li');
 
-        const idx = events.length - 1 - i;
+        const idx =
+          events.length - 1 - i;
 
-        li.innerHTML = buildHistoryHTML(ev, idx, false, showActions);
+        li.innerHTML = buildHistoryHTML(
+          ev,
+          idx,
+          false,
+          showActions
+        );
 
         recent.appendChild(li);
       });
@@ -686,15 +1152,19 @@ function renderHistory(email) {
   if (full) {
     full.innerHTML = '';
 
-    const showActionsFull = session ? targetEmail === session.email : false;
+    const showActionsFull = session
+      ? targetEmail === session.email
+      : false;
 
     events
       .slice()
       .reverse()
       .forEach((ev, i) => {
-        const li = document.createElement('li');
+        const li =
+          document.createElement('li');
 
-        const realIdx = events.length - 1 - i;
+        const realIdx =
+          events.length - 1 - i;
 
         li.innerHTML = buildHistoryHTML(
           ev,
@@ -710,12 +1180,14 @@ function renderHistory(email) {
 
 function renderAdminUserSelect() {
   const wrap = qs('#admin-panel');
+
   const sel = qs('#admin-user-select');
 
   if (!sel || !wrap) return;
 
   if (!isAdmin()) {
     wrap.style.display = 'none';
+
     return;
   }
 
@@ -726,14 +1198,21 @@ function renderAdminUserSelect() {
   sel.innerHTML = '';
 
   users.forEach((u) => {
-    const opt = document.createElement('option');
+    const opt =
+      document.createElement('option');
+
     opt.value = u.email;
+
     opt.textContent = `${u.name} (${u.email})`;
+
     sel.appendChild(opt);
   });
 
   const session = getSession();
-  if (session) sel.value = session.email;
+
+  if (session) {
+    sel.value = session.email;
+  }
 }
 
 function viewEmployeeRecords(email) {
@@ -741,7 +1220,9 @@ function viewEmployeeRecords(email) {
 
   const sel = qs('#admin-user-select');
 
-  if (sel) sel.value = email;
+  if (sel) {
+    sel.value = email;
+  }
 
   renderHistory(email);
   iniciarGraficos(email);
@@ -763,13 +1244,17 @@ function requestAdjustment(index) {
 
   if (!motivo) {
     toast('Motivo obrigatório');
+
     return;
   }
 
-  const records = loadRecords(session.email);
+  const records = loadRecords(
+    session.email
+  );
 
   if (!records[index]) {
     toast('Registro não encontrado');
+
     return;
   }
 
@@ -801,6 +1286,7 @@ function editHistoryEntry(index) {
 
   if (!records[index]) {
     toast('Registro não encontrado');
+
     return;
   }
 
@@ -821,7 +1307,8 @@ function editHistoryEntry(index) {
   entry.type = newType;
 
   if (newTs) {
-    entry.ts = parseInt(newTs, 10) || entry.ts;
+    entry.ts =
+      parseInt(newTs, 10) || entry.ts;
   }
 
   saveRecords(email, records);
@@ -848,6 +1335,7 @@ function deleteHistoryEntry(index) {
 
   if (!records[index]) {
     toast('Registro não encontrado');
+
     return;
   }
 
@@ -871,7 +1359,8 @@ function deleteHistoryEntry(index) {
 ========================================================= */
 
 function renderReports() {
-  const tbody = qs('#table-reports tbody');
+  const tbody =
+    qs('#table-reports tbody');
 
   if (!tbody) return;
 
@@ -882,11 +1371,14 @@ function renderReports() {
   users.forEach((u) => {
     const s = computeSummary(u.email);
 
-    const tr = document.createElement('tr');
+    const tr =
+      document.createElement('tr');
 
     tr.innerHTML = `
       <td>${u.name}</td>
-      <td>${hhmmss(Math.floor(s.workedSeconds))}</td>
+      <td>${hhmmss(
+      Math.floor(s.workedSeconds)
+    )}</td>
       <td>${s.extrasHours}h</td>
       <td>${s.days}d</td>
     `;
@@ -909,9 +1401,11 @@ function renderEmployees() {
   const users = loadUsers();
 
   users.forEach((u) => {
-    const li = document.createElement('li');
+    const li =
+      document.createElement('li');
 
     li.style.padding = '10px';
+
     li.style.borderBottom =
       '1px solid rgba(0,0,0,0.04)';
 
@@ -919,7 +1413,9 @@ function renderEmployees() {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div>${u.name} — ${u.role} — ${u.email}</div>
         <div>
-          <button type="button" onclick="viewEmployeeRecords('${u.email}')">Ver registros</button>
+          <button type="button" onclick="viewEmployeeRecords('${u.email}')">
+            Ver registros
+          </button>
         </div>
       </div>
     `;
@@ -936,10 +1432,15 @@ let chartLine = null;
 let chartDonut = null;
 
 function computeWeeklyHours(email) {
-  const events = (loadRecords(email) || []).slice().sort((a, b) => a.ts - b.ts);
+  const events = (
+    loadRecords(email) || []
+  )
+    .slice()
+    .sort((a, b) => a.ts - b.ts);
 
-  // index 0 => Seg, ... 6 => Dom
-  const hours = [0, 0, 0, 0, 0, 0, 0];
+  const hours = [
+    0, 0, 0, 0, 0, 0, 0
+  ];
 
   let currentEntrada = null;
   let lastPausa = null;
@@ -947,9 +1448,13 @@ function computeWeeklyHours(email) {
 
   events.forEach((ev) => {
     const d = new Date(ev.ts);
-    let dayIndex = d.getDay(); // 0 Sun, 1 Mon ...
-    // convert to Monday=0 ... Sunday=6 index
-    dayIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+
+    let dayIndex = d.getDay();
+
+    dayIndex =
+      dayIndex === 0
+        ? 6
+        : dayIndex - 1;
 
     if (ev.type === 'entrada') {
       currentEntrada = ev.ts;
@@ -961,15 +1466,31 @@ function computeWeeklyHours(email) {
       lastPausa = ev.ts;
     }
 
-    if (ev.type === 'pausa_end' && lastPausa) {
-      const pauseDuration = Math.floor((ev.ts - lastPausa) / 1000);
+    if (
+      ev.type === 'pausa_end' &&
+      lastPausa
+    ) {
+      const pauseDuration = Math.floor(
+        (ev.ts - lastPausa) / 1000
+      );
+
       totalPauseSeconds += pauseDuration;
+
       lastPausa = null;
     }
 
-    if (ev.type === 'saida' && currentEntrada) {
-      const dur = Math.floor((ev.ts - currentEntrada) / 1000);
-      const worked = Math.max(0, dur - totalPauseSeconds);
+    if (
+      ev.type === 'saida' &&
+      currentEntrada
+    ) {
+      const dur = Math.floor(
+        (ev.ts - currentEntrada) / 1000
+      );
+
+      const worked = Math.max(
+        0,
+        dur - totalPauseSeconds
+      );
 
       hours[dayIndex] += worked / 3600;
 
@@ -983,12 +1504,29 @@ function computeWeeklyHours(email) {
 }
 
 function iniciarGraficos() {
-  if (typeof Chart !== 'function') return;
+  if (typeof Chart !== 'function')
+    return;
 
   const session = getSession();
-  const targetEmail = (arguments.length > 0 && arguments[0]) || (session && session.email);
 
-  const ctx = qs('#graficoLinha').getContext('2d');
+  const targetEmail =
+    (arguments.length > 0 &&
+      arguments[0]) ||
+    (session && session.email);
+
+  const lineCanvas = qs(
+    '#graficoLinha'
+  );
+
+  const donutCanvas = qs(
+    '#graficoPizza'
+  );
+
+  if (!lineCanvas || !donutCanvas)
+    return;
+
+  const ctx =
+    lineCanvas.getContext('2d');
 
   if (chartLine) {
     chartLine.destroy();
@@ -1007,16 +1545,35 @@ function iniciarGraficos() {
   let data = days.map(() => 0);
 
   if (targetEmail) {
-    const weekly = computeWeeklyHours(targetEmail); // returns hours per day
-    data = days.map((_, i) => Math.round((weekly[i] + Number.EPSILON) * 100) / 100);
-  } else {
-    data = days.map(() => Math.floor(Math.random() * 3) + 6);
+    const weekly =
+      computeWeeklyHours(targetEmail);
+
+    data = days.map(
+      (_, i) =>
+        Math.round(
+          (weekly[i] + Number.EPSILON) *
+          100
+        ) / 100
+    );
   }
 
-  const grad = ctx.createLinearGradient(0, 0, 0, 200);
+  const grad =
+    ctx.createLinearGradient(
+      0,
+      0,
+      0,
+      200
+    );
 
-  grad.addColorStop(0, 'rgba(37,99,235,0.9)');
-  grad.addColorStop(1, 'rgba(96,165,250,0.05)');
+  grad.addColorStop(
+    0,
+    'rgba(37,99,235,0.9)'
+  );
+
+  grad.addColorStop(
+    1,
+    'rgba(96,165,250,0.05)'
+  );
 
   chartLine = new Chart(ctx, {
     type: 'line',
@@ -1028,7 +1585,8 @@ function iniciarGraficos() {
         {
           label: 'Horas',
           data,
-          borderColor: 'rgba(37,99,235,1)',
+          borderColor:
+            'rgba(37,99,235,1)',
           backgroundColor: grad,
           borderWidth: 3,
           fill: true,
@@ -1049,23 +1607,45 @@ function iniciarGraficos() {
     }
   });
 
-  const ctx2 = qs('#graficoPizza').getContext('2d');
+  const ctx2 =
+    donutCanvas.getContext('2d');
 
   if (chartDonut) {
     chartDonut.destroy();
   }
 
-  // Compute donut values: worked hours, pause hours, offline (expected - worked)
   let donutValues = [30, 10, 10];
 
   if (targetEmail) {
-    const sum = computeSummary(targetEmail);
-    const workedHours = Math.round((sum.workedSeconds / 3600) * 100) / 100;
-    const pauseHours = Math.round((sum.pauses / 3600) * 100) / 100;
-    const expected = sum.days * 8;
-    const offlineHours = Math.max(0, Math.round((expected - workedHours) * 100) / 100);
+    const sum =
+      computeSummary(targetEmail);
 
-    donutValues = [workedHours, pauseHours, offlineHours];
+    const workedHours =
+      Math.round(
+        (sum.workedSeconds / 3600) *
+        100
+      ) / 100;
+
+    const pauseHours =
+      Math.round(
+        (sum.pauses / 3600) * 100
+      ) / 100;
+
+    const expected = sum.days * 8;
+
+    const offlineHours = Math.max(
+      0,
+      Math.round(
+        (expected - workedHours) *
+        100
+      ) / 100
+    );
+
+    donutValues = [
+      workedHours,
+      pauseHours,
+      offlineHours
+    ];
   }
 
   chartDonut = new Chart(ctx2, {
@@ -1108,7 +1688,9 @@ function iniciarGraficos() {
 ========================================================= */
 
 function handleSearch(e) {
-  const q = (e.target.value || '').toLowerCase();
+  const q = (
+    e.target.value || ''
+  ).toLowerCase();
 
   qsa('#lista li').forEach((li) => {
     li.style.display = li.textContent
@@ -1134,6 +1716,27 @@ function handleSearch(e) {
 function boot() {
   ensureAdminUser();
 
+  const syncInitialized =
+    localStorage.getItem(
+      'ptr_sync_initialized'
+    );
+
+  if (!syncInitialized) {
+    Promise.all([
+      syncAllUsersToServer(),
+      syncAllRecordsToServer()
+    ]).then(() => {
+      localStorage.setItem(
+        'ptr_sync_initialized',
+        'true'
+      );
+
+      console.log(
+        'Sincronização inicial concluída'
+      );
+    });
+  }
+
   safeAddListener(
     '#form-register',
     'submit',
@@ -1146,7 +1749,11 @@ function boot() {
     handleLogin
   );
 
-  safeAddListener('#btn-logout', 'click', logout);
+  safeAddListener(
+    '#btn-logout',
+    'click',
+    logout
+  );
 
   safeAddListener(
     '#btn-entrada',
@@ -1207,7 +1814,8 @@ function boot() {
     'input',
     (e) => {
       if (qs('#searchHist')) {
-        qs('#searchHist').value = e.target.value;
+        qs('#searchHist').value =
+          e.target.value;
       }
 
       handleSearch(e);
@@ -1220,11 +1828,15 @@ function boot() {
     toggleTheme
   );
 
-  safeAddListener('#admin-user-select', 'change', (e) => {
-    renderHistory(e.target.value);
-    iniciarGraficos(e.target.value);
-    refreshDashboard(e.target.value);
-  });
+  safeAddListener(
+    '#admin-user-select',
+    'change',
+    (e) => {
+      renderHistory(e.target.value);
+      iniciarGraficos(e.target.value);
+      refreshDashboard(e.target.value);
+    }
+  );
 
   safeAddListener(
     '#toggle-theme-sidebar',
@@ -1232,36 +1844,30 @@ function boot() {
     toggleTheme
   );
 
-  if (localStorage.getItem('ptr_theme') === 'dark') {
+  if (
+    localStorage.getItem('ptr_theme') ===
+    'dark'
+  ) {
     document.body.classList.add('dark');
   }
 
   const session = getSession();
 
-  if (session && findUserByEmail(session.email)) {
-    document.body.classList.add('logged-in');
-
-    qs('#loginBox').style.display = 'none';
-    qs('#sistema').style.display = 'block';
-
-    renderUserInUI(
-      findUserByEmail(session.email)
+  if (
+    session &&
+    findUserByEmail(session.email)
+  ) {
+    restoreSession(session);
+  } else {
+    document.body.classList.remove(
+      'logged-in'
     );
 
-    renderAdminUserSelect();
+    qs('#sistema').style.display =
+      'none';
 
-    mostrarTela('dashboard');
-
-    iniciarGraficos();
-    refreshDashboard();
-    renderHistory();
-    renderReports();
-    renderEmployees();
-  } else {
-    document.body.classList.remove('logged-in');
-
-    qs('#sistema').style.display = 'none';
-    qs('#loginBox').style.display = 'block';
+    qs('#loginBox').style.display =
+      'block';
 
     showAuthTab('login');
   }
