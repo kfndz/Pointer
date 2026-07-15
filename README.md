@@ -101,13 +101,13 @@ Features include:
 Clone the repository:
 
 ```bash
-git clone https://github.com/SEU-USUARIO/pointer.git
+git clone https://github.com/kfndz/Pointer.git
 ```
 
 Navigate to the project folder:
 
 ```bash
-cd pointer
+cd Pointer
 ```
 
 Open the project with your preferred editor and launch **index.html** in your browser.
